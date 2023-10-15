@@ -56,7 +56,7 @@ The HTTPS result code will indicate the success or failure of the blockchain tra
 POST https://dtps.dhealth.cloud/announce
 ```
 
-```json
+```
 post-data:
 {
   “sender”: “ML-bouake-clinic”,
