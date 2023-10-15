@@ -76,8 +76,15 @@ export class AuthGuard {
 
     // Validate ip address
     const whitelist = authConfig.whitelist;
-    const requestIpAddress = req.headers["x-forwarded-for"];
-    if (!requestIpAddress || !whitelist.includes(requestIpAddress)) {
+    const requestIpAddresses =
+      (req.headers["x-forwarded-for"] as string).split(",");
+    let ipValid = false;
+    for (const requestIpAddress of requestIpAddresses) {
+      if (whitelist.includes(requestIpAddress)) {
+        ipValid = true;
+      }
+    }
+    if (!ipValid) {
       ResponseService.getInstance().sendResponse(res, 403, "IP not allowed");
       return;
     }
