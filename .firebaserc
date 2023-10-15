@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "blockrabies-dtps"
+  },
+  "targets": {
+    "blockrabies-dtps": {
+      "hosting": {
+        "dtps": [
+          "blockrabies-dtps"
+        ]
+      }
+    }
   }
 }

@@ -6,6 +6,17 @@
     ],
     "source": "functions"
   },
+  "hosting": [
+    {
+      "target": "dtps",
+      "rewrites": [
+        {
+          "source": "**",
+          "function": "dtps"
+        }
+      ]
+    }
+  ],
   "emulators": {
     "functions": {
       "port": 8083
