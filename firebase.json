@@ -27,6 +27,9 @@
     "ui": {
       "enabled": true,
       "port": 8085
+    },
+    "hosting": {
+      "port": 8086
     }
   }
 }
