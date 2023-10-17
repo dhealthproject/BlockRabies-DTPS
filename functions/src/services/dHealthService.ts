@@ -66,13 +66,15 @@ export class DhealthService {
    * @param {Account} senderAccount
    * @param {Address} recipientAddress
    * @param {string} data
-   * @return {Promise<TransactionAnnounceResponse>}
+   * @return {
+   *  Promise<{result: TransactionAnnounceResponse, transactionHash: string}>
+   * }
    */
-  public sendTransaction(
+  public async sendTransaction(
       senderAccount: Account,
       recipientAddress: Address,
       data: string,
-  ): Promise<TransactionAnnounceResponse> {
+  ): Promise<{result: TransactionAnnounceResponse, transactionHash: string}> {
     const transaction = this.createTransaction(
         recipientAddress,
         JSON.stringify(data)
@@ -81,9 +83,12 @@ export class DhealthService {
         senderAccount,
         transaction
     );
-    return this.announceTransaction(
-        signedTransaction
-    );
+    return {
+      result: await this.announceTransaction(
+          signedTransaction
+      ),
+      transactionHash: signedTransaction.hash,
+    };
   }
 
   /**
