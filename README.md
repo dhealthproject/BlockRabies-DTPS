@@ -81,7 +81,7 @@ Ideally, the `DTPS` should be hosted on a cloud service to avoid service interru
 
 Following functions are defined and exported with this library:
 
-| Class | Description |
+| Function | Description |
 | --- | --- |
 | [`dtps`](./functions/src/index.ts) | This function acts as the dHealth Transaction Proxy Service, which allow BlockRabies clients to send transactions to the `dHealth` blockchain network with given data. |
 
@@ -89,15 +89,33 @@ Following functions are defined and exported with this library:
 
 ## Development
 
+### Serving function only
+
 Serving the cloud functions locally works by executing the following command from the *root directory of the project*:
 
 ```bash
 npm run serve
 ```
 
-This will serve the cloud functions locally with `http://localhost:5001` and the hosting service locally at [`http://localhost:5000`](http://localhost:5000).
+This will serve the cloud functions locally at http://localhost:8083/blockrabies-dtps/us-central1/dtps.
+
+### Serving with an emulator of Firestore and Hosting
+
+To run the cloud function locally with an emulator of Firestore and Firebase Hosting, execute the command:
+
+```bash
+firebase emulators:start
+```
+
+This command will serve:
+- The cloud function at http://localhost:8083/blockrabies-dtps/us-central1/dtps
+- The cloud firestore at: http://localhost:8084
+- The emulator UI (where you can add data or read logs) at: http://localhost:8085
+- The cloud hosting at: http://localhost:8086
 
 ## Deployment
+
+### Cloud Function
 
 Cloud functions can be deployed to Firebase using the following command:
 
@@ -105,10 +123,25 @@ Cloud functions can be deployed to Firebase using the following command:
 npm run deploy
 ```
 
+### Cloud Hosting
+
+Hosting site can be deployed to Firebase using the following command:
+
+```bash
+firebase deploy --only hosting:dtps
+```
+
+### Why Firebase Hosting ?
+
+Unchangable domain names of Firebase functions will be similar to https://dtps-abcd12345-uc.a.run.app which is hard to enter and remember.
+
+The hosting site acts as a proxy server that allows the function to have simpler, more friendly domain names (e.g. https://dtps.com).
+
+Custom domain can be configured following this [guide](https://firebase.google.com/docs/hosting/custom-domain#add-domain).
 
 ## License
 
-Copyright 2022-present [dHealth Network][parent-url], All rights reserved.
+Copyright 2023-present [dHealth Network][parent-url], All rights reserved.
 
 Licensed under the [LGPL v3.0](LICENSE)
 
