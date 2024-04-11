@@ -89,10 +89,17 @@ export class AuthGuard {
       return;
     }
 
-    // Validate authorization code
-    const authorizationCodes = authConfig.codes;
-    const authorizationCode = req.headers.authorization;
-    if (!authorizationCode || !authorizationCodes.includes(authorizationCode)) {
+    // validate ip-address/authorization key
+    const authorizationKey = req.headers.authorization;
+    if (!authorizationKey) {
+      ResponseService.getInstance().sendResponse(res, 401, "Unauthorized");
+      return;
+    }
+    const entity: DocumentData | null | undefined =
+      await FirestoreService
+          .getInstance()
+          .findDoc("entities", authorizationKey);
+    if (!entity) {
       ResponseService.getInstance().sendResponse(res, 401, "Unauthorized");
       return;
     }

@@ -8,12 +8,14 @@
  */
 // external dependencies
 import {Request, Response, NextFunction} from "express";
-import {Account} from "@dhealth/sdk";
+import {Account, Address} from "@dhealth/sdk";
+import {DocumentData} from "firebase-admin/firestore";
 
 // internal dependencies
 import {AbstractController} from "./AbstractController";
 import {NetworkService} from "../services/NetworkService";
 import {FirestoreService} from "../services/FirestoreService";
+import {NewdHealthService} from "../services/NewdHealthService";
 import {DhealthService} from "../services/dHealthService";
 import {ResponseService} from "../services/ResponseService";
 
@@ -54,6 +56,7 @@ export class AnnounceController extends AbstractController {
    */
   protected setUpRoute(): void {
     this.router.post("/", this.announce);
+    this.router.post("/legacy", this.announceLegacy);
   }
 
   /**
@@ -69,34 +72,108 @@ export class AnnounceController extends AbstractController {
       req: Request,
       res: Response,
       next: NextFunction): Promise<void> {
+    const newdHealthService = NewdHealthService.getInstance();
+    const {data} = req.body;
+    const authorizationKey = req.headers.authorization;
+    if (!authorizationKey) {
+      ResponseService.getInstance()
+          .sendResponse(res, 500, "Error: no auth key");
+      return;
+    }
+    const recipientConfig: DocumentData | null | undefined =
+    await FirestoreService
+        .getInstance()
+        .findDoc("configs", "broadcastRecipient");
+    if (!recipientConfig) {
+      ResponseService.getInstance()
+          .sendResponse(res, 500, "Error: no config");
+      return;
+    }
+    try {
+      const senderEntity = await FirestoreService.getInstance().findDoc(
+          "entities",
+          authorizationKey,
+      );
+      const senderMnemonic = senderEntity?.mnemonic;
+      const senderAddress = senderEntity?.address.new;
+      const senderHasSufficientBalance =
+        await newdHealthService.validateBalance(
+            senderAddress,
+            "udhp",
+            6000
+        );
+      if (!senderHasSufficientBalance) {
+        ResponseService.getInstance()
+            .sendResponse(res, 500, "Account has insufficient balance");
+        return;
+      }
+      const recipientAddress = senderEntity?.production ?
+        recipientConfig.production : recipientConfig.staging;
+      const result = await newdHealthService.sendTokens(
+          senderMnemonic,
+          recipientAddress,
+          [
+            {
+              denom: "udhp",
+              amount: "1",
+            },
+          ],
+          JSON.stringify(data)
+      );
+      ResponseService
+          .getInstance()
+          .sendResponse(res, 200, {transactionHash: result.transactionHash});
+    } catch (err: any) {
+      next(err.stack);
+    }
+  }
+
+  /**
+   * Announce legacy transaction.
+   *
+   * @access private
+   * @param {Request} req
+   * @param {Response} res
+   * @param {NextFunction} next
+   * @return {void}
+   */
+  private async announceLegacy(
+      req: Request,
+      res: Response,
+      next: NextFunction): Promise<void> {
     const networkService = NetworkService.getInstance();
     const dHealthService = DhealthService.getInstance();
-    const {sender, data} = req.body;
+    const {data} = req.body;
+    const authorizationKey = req.headers.authorization;
+    if (!authorizationKey) {
+      ResponseService.getInstance()
+          .sendResponse(res, 500, "Error: no auth key");
+      return;
+    }
+    const recipientConfig: DocumentData | null | undefined =
+    await FirestoreService
+        .getInstance()
+        .findDoc("configs", "broadcastRecipientLegacy");
+    if (!recipientConfig) {
+      ResponseService.getInstance()
+          .sendResponse(res, 500, "Error: no config");
+      return;
+    }
     try {
-      const [senderEntity, recipientEntity] = await Promise.all([
-        FirestoreService.getInstance().findDoc(
-            "entities",
-            sender,
-        ),
-        FirestoreService.getInstance().findDoc(
-            "entities",
-            data.entity,
-        ),
-      ]);
+      const senderEntity = await FirestoreService.getInstance().findDoc(
+          "entities",
+          authorizationKey,
+      );
       const senderPrivateKey = senderEntity?.privateKey;
       const senderAccount = Account.createFromPrivateKey(
           senderPrivateKey,
           networkService.NETWORK_TYPE
       );
-      const recipientPrivateKey = recipientEntity?.privateKey;
-      const recipientAccount = Account.createFromPrivateKey(
-          recipientPrivateKey,
-          networkService.NETWORK_TYPE
-      );
-      const recipientAddress = recipientAccount.address;
+      const recipientAddress = senderEntity?.production ?
+        recipientConfig.production : recipientConfig.staging;
       const result = await dHealthService.sendTransaction(
           senderAccount,
-          recipientAddress,
+          Address.createFromRawAddress(recipientAddress),
           data
       );
       ResponseService.getInstance().sendResponse(res, 200, result);
