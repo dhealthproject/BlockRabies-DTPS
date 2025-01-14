@@ -73,6 +73,7 @@ export class AnnounceController extends AbstractController {
       res: Response,
       next: NextFunction): Promise<void> {
     const newdHealthService = NewdHealthService.getInstance();
+    const firestoreService = FirestoreService.getInstance();
     const {data} = req.body;
     const authorizationKey = req.headers.authorization;
     if (!authorizationKey) {
@@ -109,17 +110,46 @@ export class AnnounceController extends AbstractController {
       }
       const recipientAddress = senderEntity?.production ?
         recipientConfig.production : recipientConfig.staging;
-      const result = await newdHealthService.sendTokens(
-          senderMnemonic,
-          recipientAddress,
-          [
-            {
-              denom: "udhp",
-              amount: "1",
-            },
-          ],
-          JSON.stringify(data)
-      );
+
+      // Send tokens synchronously across instances using Mutex locking
+      let retries = 0;
+      const sendTokens: any = async () => {
+        try {
+          // acquire lock
+          await firestoreService.acquireLock(`locks/${authorizationKey}`);
+          // process synchronously
+          const result = await newdHealthService.sendTokens(
+              senderMnemonic,
+              recipientAddress,
+              [
+                {
+                  denom: "udhp",
+                  amount: "1",
+                },
+              ],
+              JSON.stringify(data)
+          );
+          // release lock
+          await firestoreService.releaseLock(`locks/${authorizationKey}`);
+          // return result
+          return result;
+        } catch (err: any) {
+          // retry
+          if (retries > 100) throw err;
+          retries++;
+          await sleep(1000);
+          return await sendTokens();
+        }
+      }
+
+      const sleep = async (ms: number) => {
+        return new Promise((resolve) => {
+          setTimeout(resolve, ms);
+        });
+      }
+
+      const result = await sendTokens();
+
       ResponseService
           .getInstance()
           .sendResponse(res, 200, {transactionHash: result.transactionHash});

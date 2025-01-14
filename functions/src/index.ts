@@ -41,4 +41,4 @@ const initApp = async (req: Request, res: Response) => {
 };
 
 // Expose Express API as a single Cloud Function:
-export const dtps = onRequest(initApp);
+export const dtps = onRequest({ timeoutSeconds: 300 }, initApp);
