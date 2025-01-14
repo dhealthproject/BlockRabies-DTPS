@@ -135,7 +135,7 @@ export class AnnounceController extends AbstractController {
           return result;
         } catch (err: any) {
           // retry
-          if (retries > 100) throw err;
+          if (retries > 200) throw err;
           retries++;
           await sleep(1000);
           return await sendTokens();
