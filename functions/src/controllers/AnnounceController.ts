@@ -10,6 +10,7 @@
 import {Request, Response, NextFunction} from "express";
 import {Account, Address} from "@dhealth/sdk";
 import {DocumentData} from "firebase-admin/firestore";
+import {DeliverTxResponse} from "@cosmjs/stargate";
 
 // internal dependencies
 import {AbstractController} from "./AbstractController";
@@ -113,7 +114,7 @@ export class AnnounceController extends AbstractController {
 
       // Send tokens synchronously across instances using Mutex locking
       let retries = 0;
-      const sendTokens: any = async () => {
+      const sendTokens: () => Promise<DeliverTxResponse> = async () => {
         try {
           // acquire lock
           await firestoreService.acquireLock(`locks/${authorizationKey}`);
@@ -133,28 +134,28 @@ export class AnnounceController extends AbstractController {
           await firestoreService.releaseLock(`locks/${authorizationKey}`);
           // return result
           return result;
-        } catch (err: any) {
+        } catch (err) {
           // retry
           if (retries > 200) throw err;
           retries++;
           await sleep(1000);
           return await sendTokens();
         }
-      }
+      };
 
       const sleep = async (ms: number) => {
         return new Promise((resolve) => {
           setTimeout(resolve, ms);
         });
-      }
+      };
 
       const result = await sendTokens();
 
       ResponseService
           .getInstance()
           .sendResponse(res, 200, {transactionHash: result.transactionHash});
-    } catch (err: any) {
-      next(err.stack);
+    } catch (err) {
+      if (err instanceof Error) next(err.stack);
     }
   }
 
@@ -207,8 +208,8 @@ export class AnnounceController extends AbstractController {
           data
       );
       ResponseService.getInstance().sendResponse(res, 200, result);
-    } catch (err: any) {
-      next(err.stack);
+    } catch (err) {
+      if (err instanceof Error) next(err.stack);
     }
   }
 }

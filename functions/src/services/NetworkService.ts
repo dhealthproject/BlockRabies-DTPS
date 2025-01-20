@@ -115,9 +115,10 @@ export class NetworkService {
    *
    * @access public
    * @async
-   * @return {Promise<Record<string, any>>}
+   * @return {Promise<Record<string, object>>}
    */
-  public async connectToAnAvailableNode(): Promise<Record<string, any>> {
+  public async connectToAnAvailableNode()
+    : Promise<Record<string, object>> {
     // prepares the connection parameters
     const nodeUrl = await this.getNextAvailableNode();
     const node = this.connectToNode(nodeUrl);
@@ -182,11 +183,11 @@ export class NetworkService {
    *
    * @access protected
    * @param {string} nodeUrl
-   * @return {Record<string, any>}
+   * @return {Record<string, object>}
    */
   protected connectToNode(
       nodeUrl: string,
-  ): Record<string, any> {
+  ): Record<string, object> {
     // configures the repository factory
     const repositoryFactoryHttp = new RepositoryFactoryHttp(nodeUrl, {
       generationHash: this.GENERATION_HASH,

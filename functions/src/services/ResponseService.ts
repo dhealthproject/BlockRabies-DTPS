@@ -58,14 +58,14 @@ export class ResponseService {
    * @param {Response} res
    * @param {number} statusCode
    * @param {string | object} content
-   * @param {any} error
+   * @param {object} error
    * @return {void}
    */
   public sendResponse(
       res: Response,
       statusCode: number,
       content: string | object,
-      error?: any
+      error?: object
   ): void {
     res.locals.responseContent = content;
     res.locals.error = error;

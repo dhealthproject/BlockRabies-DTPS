@@ -33,7 +33,7 @@ const initApp = async (req: Request, res: Response) => {
   app.use("/announce", AnnounceController.getInstance().controller);
 
   // Add error handler
-  app.use((err: any, req: Request, res: Response) => {
+  app.use((err: object, req: Request, res: Response) => {
     ResponseService.getInstance().sendResponse(res, 500, "Server error", err);
   });
 
@@ -41,4 +41,4 @@ const initApp = async (req: Request, res: Response) => {
 };
 
 // Expose Express API as a single Cloud Function:
-export const dtps = onRequest({ timeoutSeconds: 300 }, initApp);
+export const dtps = onRequest({timeoutSeconds: 300}, initApp);

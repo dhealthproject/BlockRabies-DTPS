@@ -15,7 +15,7 @@ import {
   WhereFilterOp,
   Query,
   QuerySnapshot,
-  WriteResult
+  WriteResult,
 } from "firebase-admin/firestore";
 
 /**
@@ -92,12 +92,12 @@ export class FirestoreService {
    * @access public
    * @async
    * @param {string} collection
-   * @param {Record<string, any>} data
+   * @param {Record<string, unknown>} data
    * @return {string}
    */
   public async addDoc(
-    collection: string,
-    data: Record<string, any>
+      collection: string,
+      data: Record<string, unknown>
   ): Promise<string> {
     const docRef = this.db.collection(collection).doc();
     await docRef.set(data);
@@ -111,13 +111,13 @@ export class FirestoreService {
    * @async
    * @param {string} collection
    * @param {string} id
-   * @param {Record<string, any>} data
+   * @param {Record<string, unknown>} data
    * @return {Promise<FirebaseFirestore.WriteResult>}
    */
   public async updateDoc(
-    collection: string,
-    id: string,
-    data: Record<string, any>
+      collection: string,
+      id: string,
+      data: Record<string, unknown>
   ): Promise<FirebaseFirestore.WriteResult> {
     const docRef = this.db.collection(collection).doc(id);
     const result = await docRef.update(data);
@@ -132,18 +132,18 @@ export class FirestoreService {
    * @param {string} collection
    * @param {string} fieldPath
    * @param {WhereFilterOp} opString
-   * @param {any} value
+   * @param {unknown} value
    * @param {string} orderBy
    * @param {number} limit
    * @return {Promise<QuerySnapshot<DocumentData>>}
    */
   public async queryDoc(
-    collection: string,
-    fieldPath: string,
-    opString: WhereFilterOp,
-    value: any,
-    orderBy?: string,
-    limit?: number
+      collection: string,
+      fieldPath: string,
+      opString: WhereFilterOp,
+      value: unknown,
+      orderBy?: string,
+      limit?: number
   ): Promise<QuerySnapshot<DocumentData>> {
     let docRef: Query<DocumentData> = this.db.collection(collection);
     if (fieldPath !== null && opString != null && value != null) {
@@ -166,7 +166,9 @@ export class FirestoreService {
    * @param {string} lockPath
    * @return {Promise<FirebaseFirestore.WriteResult>}
    */
-  public async acquireLock(lockPath: string): Promise<FirebaseFirestore.WriteResult> {
+  public async acquireLock(
+      lockPath: string
+  ): Promise<FirebaseFirestore.WriteResult> {
     const lockDoc = this.db.doc(lockPath);
     const now = Date.now();
 
@@ -177,7 +179,9 @@ export class FirestoreService {
     }
 
     // Set the lock
-    return await lockDoc.set({ expiresAt: now + 10000 }); // Lock expires in 10 seconds
+    return await lockDoc.set({
+      expiresAt: now + 10000,
+    }); // Lock expires in 10 seconds
   }
 
   /**
