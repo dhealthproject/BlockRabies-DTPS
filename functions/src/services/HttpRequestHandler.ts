@@ -65,10 +65,10 @@ export class HttpRequestHandler {
    * @async
    * @param   {string}   url
    * @param   {string}   method
-   * @param   {any}      body
-   * @param   {any}      options
-   * @param   {any}      headers
-   * @return {Promise<AxiosResponse<any, any>>}
+   * @param   {object}      body
+   * @param   {object}      options
+   * @param   {object}      headers
+   * @return {Promise<AxiosResponse<{data: object}>>}
    */
   public async call(
       url: string,
@@ -76,7 +76,7 @@ export class HttpRequestHandler {
       body: object = {},
       options: object = {},
       headers: object = {},
-  ): Promise<AxiosResponse<any, any>> {
+  ): Promise<AxiosResponse<{data: object}>> {
     // POST requests are supported
     if (method === "POST") {
       return axios.post(url, body, {

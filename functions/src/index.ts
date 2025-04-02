@@ -32,8 +32,17 @@ const initApp = async (req: Request, res: Response) => {
   app.use("/", RootController.getInstance().controller);
   app.use("/announce", AnnounceController.getInstance().controller);
 
+  // Invalid routes
+  app.use((req: Request, res: Response) => {
+    res.status(404).json({
+      message: `Cannot ${req.method} ${req.path}`,
+      error: "Not Found",
+      statusCode: 404
+    });
+  });
+
   // Add error handler
-  app.use((err: any, req: Request, res: Response) => {
+  app.use((err: object, req: Request, res: Response) => {
     ResponseService.getInstance().sendResponse(res, 500, "Server error", err);
   });
 
@@ -41,4 +50,4 @@ const initApp = async (req: Request, res: Response) => {
 };
 
 // Expose Express API as a single Cloud Function:
-export const dtps = onRequest(initApp);
+export const dtps = onRequest({timeoutSeconds: 300}, initApp);

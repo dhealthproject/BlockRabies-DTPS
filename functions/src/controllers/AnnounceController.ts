@@ -10,6 +10,7 @@
 import {Request, Response, NextFunction} from "express";
 import {Account, Address} from "@dhealth/sdk";
 import {DocumentData} from "firebase-admin/firestore";
+import {DeliverTxResponse} from "@cosmjs/stargate";
 
 // internal dependencies
 import {AbstractController} from "./AbstractController";
@@ -73,6 +74,7 @@ export class AnnounceController extends AbstractController {
       res: Response,
       next: NextFunction): Promise<void> {
     const newdHealthService = NewdHealthService.getInstance();
+    const firestoreService = FirestoreService.getInstance();
     const {data} = req.body;
     const authorizationKey = req.headers.authorization;
     if (!authorizationKey) {
@@ -109,22 +111,51 @@ export class AnnounceController extends AbstractController {
       }
       const recipientAddress = senderEntity?.production ?
         recipientConfig.production : recipientConfig.staging;
-      const result = await newdHealthService.sendTokens(
-          senderMnemonic,
-          recipientAddress,
-          [
-            {
-              denom: "udhp",
-              amount: "1",
-            },
-          ],
-          JSON.stringify(data)
-      );
+
+      // Send tokens synchronously across instances using Mutex locking
+      let retries = 0;
+      const sendTokens: () => Promise<DeliverTxResponse> = async () => {
+        try {
+          // acquire lock
+          await firestoreService.acquireLock(`locks/${authorizationKey}`);
+          // process synchronously
+          const result = await newdHealthService.sendTokens(
+              senderMnemonic,
+              recipientAddress,
+              [
+                {
+                  denom: "udhp",
+                  amount: "1",
+                },
+              ],
+              JSON.stringify(data)
+          );
+          // release lock
+          await firestoreService.releaseLock(`locks/${authorizationKey}`);
+          // return result
+          return result;
+        } catch (err) {
+          // retry
+          if (retries > 200) throw err;
+          retries++;
+          await sleep(1000);
+          return await sendTokens();
+        }
+      };
+
+      const sleep = async (ms: number) => {
+        return new Promise((resolve) => {
+          setTimeout(resolve, ms);
+        });
+      };
+
+      const result = await sendTokens();
+
       ResponseService
           .getInstance()
           .sendResponse(res, 200, {transactionHash: result.transactionHash});
-    } catch (err: any) {
-      next(err.stack);
+    } catch (err) {
+      if (err instanceof Error) next(err.stack);
     }
   }
 
@@ -177,8 +208,8 @@ export class AnnounceController extends AbstractController {
           data
       );
       ResponseService.getInstance().sendResponse(res, 200, result);
-    } catch (err: any) {
-      next(err.stack);
+    } catch (err) {
+      if (err instanceof Error) next(err.stack);
     }
   }
 }

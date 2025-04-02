@@ -15,6 +15,7 @@ import {
   SignedTransaction,
   Transaction,
   TransactionAnnounceResponse,
+  TransactionRepository,
   TransferTransaction,
   UInt64,
 } from "@dhealth/sdk";
@@ -148,7 +149,7 @@ export class DhealthService {
   ): Promise<TransactionAnnounceResponse> {
     const networkService = NetworkService.getInstance();
     const node = await networkService.connectToAnAvailableNode();
-    const transactionHttp = node.transactionRepository;
+    const transactionHttp = node.transactionRepository as TransactionRepository;
     const response = transactionHttp.announce(signedTransaction);
     return response.toPromise();
   }
